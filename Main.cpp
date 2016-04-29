@@ -24,9 +24,17 @@ int main()
 	}
 
 	sf::SoundBufferRecorder mainRecorder;
+	const sf::Int16 * sampleArray = mainRecorder.getBuffer().getSamples();
+	int sampleCount = mainRecorder.getBuffer().getSampleCount();
+
+	sf::SoundBuffer intermediateBuffer;
+
+	std::vector<sf::Int16> modVector;
+
 	sf::Sound playbackSound;
 
-	int sampleRate = 44100;
+	vector<int> sampleRateArray = {44100, 22050, 11025, 5012};
+	int sampleIndex = 0;
 
 	//-- Text and Button Elements --//
 	sf::Text recordText;
@@ -38,7 +46,7 @@ int main()
 
 	sf::Text frequencyText;
 	frequencyText.setFont(UIFont);
-	frequencyText.setString("Sample Frequency: " + itoa(sampleRate));
+	frequencyText.setString("Sample Frequency: " + itoa(sampleRateArray[0]));
 	frequencyText.setColor(sf::Color::White);
 	frequencyText.setPosition(50, 100);
 	frequencyText.setCharacterSize(15);
@@ -66,6 +74,22 @@ int main()
 					recordText.setString("Recording...");
 
 				}
+
+				if (event.key.code == sf::Keyboard::Up)
+				{
+					if (sampleIndex > 0)
+					{
+						sampleIndex--;
+					}
+				}
+
+				if (event.key.code == sf::Keyboard::Down)
+				{
+					if (sampleIndex < sampleRateArray.size())
+					{
+						sampleIndex++;
+					}
+				}
 			}
 
 			if (event.type == sf::Event::KeyReleased)
@@ -73,9 +97,34 @@ int main()
 				if (event.key.code == sf::Keyboard::Space)
 				{
 					mainRecorder.stop();
-					playbackSound.setBuffer(mainRecorder.getBuffer());
-					playbackSound.play();
+					
 
+					//-- Change the sampleArray pointer to point to the start of the Buffer --//
+					sampleArray = mainRecorder.getBuffer().getSamples();
+					sampleCount = mainRecorder.getBuffer().getSampleCount();
+
+					//-- Make sure the modification vector is clear --//
+					modVector.clear();
+
+					//-- Copy all the contents of the audio Buffer into a modification vector --//
+					for (int i = 0; i < sampleCount; i++)
+					{
+						modVector.push_back(*(sampleArray + i));
+					}
+
+					//-- Downsample according to the designated sample rate --//
+					for (int j = 0; j < sampleIndex; j++)
+					{
+						downSample(modVector);
+						cout << "Performed Downsample." << endl;
+					}
+
+
+					intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
+
+					//-- Move the contents back to the playbackSound entitity --//
+					playbackSound.setBuffer(intermediateBuffer);
+					playbackSound.play();
 
 					recordText.setColor(sf::Color::White);
 					recordText.setString("Hold Space to Record.");

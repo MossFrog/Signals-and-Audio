@@ -3,6 +3,7 @@
 #include <SFML/OpenGL.hpp>
 #include <iostream>
 #include <cstdlib>
+#include <vector>
 
 //-- Commonly Used Variables. --//
 sf::Font UIFont;
@@ -22,4 +23,28 @@ void loadResources()
 		cout << "Failed to load the font 'Pixel Emulator.ttf'" << endl;
 	}
 
+}
+
+//-- The downSample function halves the number of samples. --//
+//-- Given the source has a sampling frequency of 44100Hz it should half the resolution. --//
+void downSample(vector<sf::Int16> & samplesVector)
+{
+	bool toggle = false;
+	vector<sf::Int16> tempVector;
+
+	for (int i = 0; i < samplesVector.size(); i++)
+	{
+		if (toggle == true)
+		{
+			tempVector.push_back(samplesVector[i]);
+			toggle = false;
+		}
+
+		else if (toggle == false)
+		{
+			toggle = true;
+		}
+	}
+
+	samplesVector = tempVector;
 }
