@@ -9,7 +9,7 @@ using namespace std;
 int main()
 {
 	//-- We create the render MainWindow and Set its initial properties. --//
-	sf::RenderWindow MainWindow(sf::VideoMode(800, 600), "Audio Sampler", sf::Style::Close);
+	sf::RenderWindow MainWindow(sf::VideoMode(1000, 400), "Audio Sampler", sf::Style::Close);
 	MainWindow.setFramerateLimit(60);
 	MainWindow.setKeyRepeatEnabled(false);
 
@@ -39,23 +39,26 @@ int main()
 	//-- Text and Button Elements --//
 	sf::Text recordText;
 	recordText.setFont(UIFont);
-	recordText.setString("Hold Space to Record.");
+	recordText.setString("Hold 'R' to Record.");
 	recordText.setColor(sf::Color::White);
 	recordText.setPosition(50, 50);
 	recordText.setCharacterSize(20);
 
 	sf::Text frequencyText;
 	frequencyText.setFont(UIFont);
-	frequencyText.setString("Sample Frequency: " + itoa(sampleRateArray[0]));
+	frequencyText.setString("Sampling Frequency: " + itoa(sampleRateArray[0]));
 	frequencyText.setColor(sf::Color::White);
-	frequencyText.setPosition(50, 100);
-	frequencyText.setCharacterSize(15);
+	frequencyText.setPosition(50, 75);
+	frequencyText.setCharacterSize(10);
 
+	sf::RectangleShape outputRect;
+	outputRect.setFillColor(sf::Color::Cyan);
+	outputRect.setPosition(750, 50);
+	outputRect.setSize(sf::Vector2f(200, 50));
 
 	//-- Main game loop --//
 	while (MainWindow.isOpen())
 	{
-
 		//-- The code below checks for user bound events such as keyboard, UI, mouse and joystick events --//
 		sf::Event event;
 
@@ -67,38 +70,15 @@ int main()
 			//-- Single stroke keyPress and keyRelease Events --//
 			if (event.type == sf::Event::KeyPressed)
 			{
-				if (event.key.code == sf::Keyboard::Space)
+				if (event.key.code == sf::Keyboard::R)
 				{
 					mainRecorder.start();
 					recordText.setColor(sf::Color::Red);
 					recordText.setString("Recording...");
-
 				}
 
-				if (event.key.code == sf::Keyboard::Up)
+				if (event.key.code == sf::Keyboard::P)
 				{
-					if (sampleIndex > 0)
-					{
-						sampleIndex--;
-					}
-				}
-
-				if (event.key.code == sf::Keyboard::Down)
-				{
-					if (sampleIndex < sampleRateArray.size())
-					{
-						sampleIndex++;
-					}
-				}
-			}
-
-			if (event.type == sf::Event::KeyReleased)
-			{
-				if (event.key.code == sf::Keyboard::Space)
-				{
-					mainRecorder.stop();
-					
-
 					//-- Change the sampleArray pointer to point to the start of the Buffer --//
 					sampleArray = mainRecorder.getBuffer().getSamples();
 					sampleCount = mainRecorder.getBuffer().getSampleCount();
@@ -112,22 +92,24 @@ int main()
 						modVector.push_back(*(sampleArray + i));
 					}
 
-					//-- Downsample according to the designated sample rate --//
-					for (int j = 0; j < sampleIndex; j++)
-					{
-						downSample(modVector);
-						cout << "Performed Downsample." << endl;
-					}
-
-
+					//-- Convert the audio to mono for simplicity --//
 					intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
 
 					//-- Move the contents back to the playbackSound entitity --//
 					playbackSound.setBuffer(intermediateBuffer);
 					playbackSound.play();
+				}
+			}
+
+			if (event.type == sf::Event::KeyReleased)
+			{
+				if (event.key.code == sf::Keyboard::R)
+				{
+					//-- Stop recording. --//
+					mainRecorder.stop();
 
 					recordText.setColor(sf::Color::White);
-					recordText.setString("Hold Space to Record.");
+					recordText.setString("Hold 'R' to Record.");
 
 
 					//-- Output Recording Statistics to the console. --//
@@ -136,7 +118,7 @@ int main()
 					cout << "Duration: " << mainRecorder.getBuffer().getDuration().asMilliseconds() << "ms" << endl;
 					cout << "Sample Count: " << mainRecorder.getBuffer().getSampleCount() << endl;
 					cout << "Channel Count: " << mainRecorder.getBuffer().getChannelCount() << endl;
-					cout << "Samples: " << mainRecorder.getBuffer().getSamples() << endl;
+					cout << "Samples Memory Index: " << mainRecorder.getBuffer().getSamples() << endl;
 
 				}
 			}
@@ -157,6 +139,7 @@ int main()
 		//-- We do all the drawing after the clear event, if not any drawing we do will not be visible --//
 		MainWindow.draw(recordText);
 		MainWindow.draw(frequencyText);
+		MainWindow.draw(outputRect);
 
 		MainWindow.display();
 
