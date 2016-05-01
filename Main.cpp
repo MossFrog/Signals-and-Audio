@@ -4,6 +4,7 @@
 using namespace std;
 
 
+
 //-- This program is a simple demonstration of primitive shapes using the SFML library --//
 //-- Software Created by MossFrog --//
 int main()
@@ -36,6 +37,10 @@ int main()
 	vector<int> sampleRateArray = {44100, 22050, 11025, 5012};
 	int sampleIndex = 0;
 
+	//-- Boolean elements --//
+
+	bool playbackEnabled = false;
+
 	//-- Text and Button Elements --//
 	sf::Text recordText;
 	recordText.setFont(UIFont);
@@ -46,10 +51,18 @@ int main()
 
 	sf::Text frequencyText;
 	frequencyText.setFont(UIFont);
-	frequencyText.setString("Sampling Frequency: " + itoa(sampleRateArray[0]));
+	frequencyText.setString("Sampling Frequency: " + itoa(sampleRateArray[0]) + "Hz");
 	frequencyText.setColor(sf::Color::White);
 	frequencyText.setPosition(50, 75);
 	frequencyText.setCharacterSize(10);
+
+
+	sf::Text outputText;
+	outputText.setFont(UIFont);
+	outputText.setString("Create Downsamples");
+	outputText.setColor(sf::Color::Black);
+	outputText.setPosition(755, 60);
+	outputText.setCharacterSize(15);
 
 	sf::RectangleShape outputRect;
 	outputRect.setFillColor(sf::Color::Cyan);
@@ -59,6 +72,9 @@ int main()
 	//-- Main game loop --//
 	while (MainWindow.isOpen())
 	{
+		//-- Get the mouse co-ordinates --//
+		sf::Vector2i mouse = sf::Mouse::getPosition(MainWindow);
+
 		//-- The code below checks for user bound events such as keyboard, UI, mouse and joystick events --//
 		sf::Event event;
 
@@ -67,17 +83,31 @@ int main()
 			if (event.type == sf::Event::Closed)
 				MainWindow.close();
 
+			if (event.type == sf::Event::MouseButtonPressed)
+			{
+				if (event.mouseButton.button == sf::Mouse::Left)
+				{
+					if (outputRect.getGlobalBounds().contains(mouse.x, mouse.y) && playbackEnabled == true)
+					{
+						//-- Create downsamples here. --//
+						cout << "Creating and saving downsamples." << endl;
+					}
+				}
+			}
+
 			//-- Single stroke keyPress and keyRelease Events --//
 			if (event.type == sf::Event::KeyPressed)
 			{
 				if (event.key.code == sf::Keyboard::R)
 				{
+					playbackEnabled = false;
 					mainRecorder.start();
 					recordText.setColor(sf::Color::Red);
 					recordText.setString("Recording...");
+
 				}
 
-				if (event.key.code == sf::Keyboard::P)
+				if (event.key.code == sf::Keyboard::P && playbackEnabled == true)
 				{
 					//-- Change the sampleArray pointer to point to the start of the Buffer --//
 					sampleArray = mainRecorder.getBuffer().getSamples();
@@ -111,6 +141,8 @@ int main()
 					recordText.setColor(sf::Color::White);
 					recordText.setString("Hold 'R' to Record.");
 
+					//-- Re-enable playback --//
+					playbackEnabled = true;
 
 					//-- Output Recording Statistics to the console. --//
 					cout << endl;
@@ -124,7 +156,20 @@ int main()
 			}
 		}
 
-		sf::Vector2i mouse = sf::Mouse::getPosition(MainWindow);
+		
+
+
+		//-- Hovering over UI elements changes their color. --//
+		if (outputRect.getGlobalBounds().contains(mouse.x, mouse.y))
+		{
+			outputRect.setFillColor(sf::Color::White);
+		}
+
+		else
+		{
+			outputRect.setFillColor(sf::Color::Cyan);
+		}
+
 
 
 		//-- This code hides the console MainWindow, MS-WINDOWS specific --//
@@ -140,6 +185,7 @@ int main()
 		MainWindow.draw(recordText);
 		MainWindow.draw(frequencyText);
 		MainWindow.draw(outputRect);
+		MainWindow.draw(outputText);
 
 		MainWindow.display();
 
