@@ -3,8 +3,6 @@
 
 using namespace std;
 
-
-
 //-- This program is a simple demonstration of primitive shapes using the SFML library --//
 //-- Software Created by MossFrog --//
 int main()
@@ -56,6 +54,13 @@ int main()
 	frequencyText.setPosition(50, 75);
 	frequencyText.setCharacterSize(10);
 
+	sf::Text playText;
+	playText.setFont(UIFont);
+	playText.setString("Press 'P' for playback.");
+	playText.setColor(sf::Color::White);
+	playText.setPosition(50, 100);
+	playText.setCharacterSize(20);
+
 
 	sf::Text outputText;
 	outputText.setFont(UIFont);
@@ -90,7 +95,37 @@ int main()
 					if (outputRect.getGlobalBounds().contains(mouse.x, mouse.y) && playbackEnabled == true)
 					{
 						//-- Create downsamples here. --//
-						cout << "Creating and saving downsamples." << endl;
+						cout << endl <<"- Creating and saving downsamples to program directory. -" << endl;
+
+						//-- Convert the audio to mono for simplicity --//
+						intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("44K-Source.wav");
+
+						//-- Half the sample rate and repeat the saving process. --//
+						downSample(modVector);
+						sampleIndex++;
+						intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("22K-Sample.wav");
+
+						//-- Half the sample rate and repeat the saving process. --//
+						downSample(modVector);
+						sampleIndex++;
+						intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("11K-Sample.wav");
+
+						//-- Half the sample rate and repeat the saving process. --//
+						downSample(modVector);
+						sampleIndex++;
+						intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("5K-Sample.wav");
+
+						//-- Re-load the Source audio back into the buffer. --//
+						intermediateBuffer.loadFromFile("44K-Source.wav");
+						sampleIndex = 0;
 					}
 				}
 			}
@@ -98,6 +133,7 @@ int main()
 			//-- Single stroke keyPress and keyRelease Events --//
 			if (event.type == sf::Event::KeyPressed)
 			{
+				//-- Begin Recording. --//
 				if (event.key.code == sf::Keyboard::R)
 				{
 					playbackEnabled = false;
@@ -109,22 +145,6 @@ int main()
 
 				if (event.key.code == sf::Keyboard::P && playbackEnabled == true)
 				{
-					//-- Change the sampleArray pointer to point to the start of the Buffer --//
-					sampleArray = mainRecorder.getBuffer().getSamples();
-					sampleCount = mainRecorder.getBuffer().getSampleCount();
-
-					//-- Make sure the modification vector is clear --//
-					modVector.clear();
-
-					//-- Copy all the contents of the audio Buffer into a modification vector --//
-					for (int i = 0; i < sampleCount; i++)
-					{
-						modVector.push_back(*(sampleArray + i));
-					}
-
-					//-- Convert the audio to mono for simplicity --//
-					intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
-
 					//-- Move the contents back to the playbackSound entitity --//
 					playbackSound.setBuffer(intermediateBuffer);
 					playbackSound.play();
@@ -140,6 +160,22 @@ int main()
 
 					recordText.setColor(sf::Color::White);
 					recordText.setString("Hold 'R' to Record.");
+
+					//-- Change the sampleArray pointer to point to the start of the Buffer --//
+					sampleArray = mainRecorder.getBuffer().getSamples();
+					sampleCount = mainRecorder.getBuffer().getSampleCount();
+
+					//-- Make sure the modification vector is clear --//
+					modVector.clear();
+
+					//-- Copy all the contents of the audio Buffer into the modification vector --//
+					for (int i = 0; i < sampleCount; i++)
+					{
+						modVector.push_back(*(sampleArray + i));
+					}
+
+					//-- Convert the audio to mono for simplicity --//
+					intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
 
 					//-- Re-enable playback --//
 					playbackEnabled = true;
@@ -183,6 +219,7 @@ int main()
 
 		//-- We do all the drawing after the clear event, if not any drawing we do will not be visible --//
 		MainWindow.draw(recordText);
+		MainWindow.draw(playText);
 		MainWindow.draw(frequencyText);
 		MainWindow.draw(outputRect);
 		MainWindow.draw(outputText);
