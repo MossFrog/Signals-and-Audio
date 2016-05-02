@@ -2,8 +2,10 @@
 #include <SFML/Audio.hpp>
 #include <SFML/OpenGL.hpp>
 #include <iostream>
+
 #include <cstdlib>
 #include <vector>
+#include <nfd.h>
 
 //-- Commonly Used Variables. --//
 sf::Font UIFont;

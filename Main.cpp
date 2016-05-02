@@ -74,6 +74,19 @@ int main()
 	outputRect.setPosition(750, 50);
 	outputRect.setSize(sf::Vector2f(200, 50));
 
+
+	sf::Text openFileText;
+	openFileText.setFont(UIFont);
+	openFileText.setString("Open File");
+	openFileText.setColor(sf::Color::Black);
+	openFileText.setPosition(60, 350);
+	openFileText.setCharacterSize(15);
+
+	sf::RectangleShape openFileRect;
+	openFileRect.setFillColor(sf::Color::Cyan);
+	openFileRect.setPosition(50, 340);
+	openFileRect.setSize(sf::Vector2f(115, 50));
+
 	//-- Main game loop --//
 	while (MainWindow.isOpen())
 	{
@@ -126,6 +139,13 @@ int main()
 						//-- Re-load the Source audio back into the buffer. --//
 						intermediateBuffer.loadFromFile("44K-Source.wav");
 						sampleIndex = 0;
+					}
+
+					//-- Get the opened file --//
+					else if (openFileRect.getGlobalBounds().contains(mouse.x, mouse.y))
+					{
+						nfdchar_t *outPath = NULL;
+						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
 					}
 				}
 			}
@@ -197,14 +217,17 @@ int main()
 
 		//-- Hovering over UI elements changes their color. --//
 		if (outputRect.getGlobalBounds().contains(mouse.x, mouse.y))
-		{
-			outputRect.setFillColor(sf::Color::White);
-		}
+		{ outputRect.setFillColor(sf::Color::White); }
 
 		else
-		{
-			outputRect.setFillColor(sf::Color::Cyan);
-		}
+		{ outputRect.setFillColor(sf::Color::Cyan); }
+
+
+		if (openFileRect.getGlobalBounds().contains(mouse.x, mouse.y))
+		{ openFileRect.setFillColor(sf::Color::White); }
+
+		else
+		{ openFileRect.setFillColor(sf::Color::Cyan); }
 
 
 
@@ -223,6 +246,8 @@ int main()
 		MainWindow.draw(frequencyText);
 		MainWindow.draw(outputRect);
 		MainWindow.draw(outputText);
+		MainWindow.draw(openFileRect);
+		MainWindow.draw(openFileText);
 
 		MainWindow.display();
 
