@@ -50,3 +50,28 @@ void downSample(vector<sf::Int16> & samplesVector)
 
 	samplesVector = tempVector;
 }
+
+void updateVerteces(vector<sf::Int16> samplesVector, vector<sf::VertexArray> & lineVector)
+{
+	//-- Clear any previous data. --//
+	lineVector.clear();
+
+	//-- Set the "Step Size" essentially the resolution downscale. --//
+	int stepSize = int(samplesVector.size() / 950);
+
+	//-- Create a temporary storage line. --//
+	sf::VertexArray tempLine(sf::Lines, 2);
+
+	int xPos = 0;
+	int yPos = 270;
+
+	//-- Gather periodic data and store in the lineVector. --//
+	for (int i = 0; i < samplesVector.size();)
+	{
+		tempLine[0].position = sf::Vector2f(xPos, yPos);
+		tempLine[1].position = sf::Vector2f(xPos, yPos - int(samplesVector[i]/150));
+		lineVector.push_back(tempLine);
+		xPos++;
+		i = i + stepSize;
+	}
+}

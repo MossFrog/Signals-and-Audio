@@ -35,6 +35,10 @@ int main()
 	vector<int> sampleRateArray = {44100, 22050, 11025, 5012};
 	int sampleIndex = 0;
 
+	//-- Waveform Render Vector --//
+	vector<sf::VertexArray> lineVector;
+
+
 	//-- Boolean elements --//
 
 	bool playbackEnabled = false;
@@ -141,11 +145,26 @@ int main()
 						sampleIndex = 0;
 					}
 
-					//-- Get the opened file --//
+					//-- Opening a file from an external source. --//
 					else if (openFileRect.getGlobalBounds().contains(mouse.x, mouse.y))
 					{
 						nfdchar_t *outPath = NULL;
 						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
+						intermediateBuffer.loadFromFile(outPath);
+
+						//-- Update the mod vector to contain the new intermediate buffer. --//
+						
+						sampleArray = intermediateBuffer.getSamples();
+						sampleCount = intermediateBuffer.getSampleCount();
+
+						//-- Make sure the modification vector is clear --//
+						modVector.clear();
+
+						//-- Copy all the contents of the audio Buffer into the modification vector --//
+						for (int i = 0; i < sampleCount; i++)
+						{
+							modVector.push_back(*(sampleArray + i));
+						}
 					}
 				}
 			}
@@ -168,6 +187,8 @@ int main()
 					//-- Move the contents back to the playbackSound entitity --//
 					playbackSound.setBuffer(intermediateBuffer);
 					playbackSound.play();
+
+					updateVerteces(modVector, lineVector);
 				}
 			}
 
@@ -248,6 +269,10 @@ int main()
 		MainWindow.draw(outputText);
 		MainWindow.draw(openFileRect);
 		MainWindow.draw(openFileText);
+		for (int i = 0; i < lineVector.size(); i++)
+		{
+			MainWindow.draw(lineVector[i]);
+		}
 
 		MainWindow.display();
 
