@@ -189,23 +189,31 @@ int main()
 					//-- Opening a file from an external source. --//
 					else if (openFileRect.getGlobalBounds().contains(mouse.x, mouse.y))
 					{
+						
 						nfdchar_t *outPath = NULL;
 						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
-						intermediateBuffer.loadFromFile(outPath);
 
-						//-- Update the mod vector to contain the new intermediate buffer. --//
-						
-						sampleArray = intermediateBuffer.getSamples();
-						sampleCount = intermediateBuffer.getSampleCount();
-
-						//-- Make sure the modification vector is clear --//
-						modVector.clear();
-
-						//-- Copy all the contents of the audio Buffer into the modification vector --//
-						for (int i = 0; i < sampleCount; i++)
+						//-- Make sure the directory path given is valid, or else the program will crash searching for a NULL directory --//
+						if (outPath != NULL && outPath != "")
 						{
-							modVector.push_back(*(sampleArray + i));
+							playbackEnabled = true;
+							intermediateBuffer.loadFromFile(outPath);
+
+							//-- Update the mod vector to contain the new intermediate buffer. --//
+
+							sampleArray = intermediateBuffer.getSamples();
+							sampleCount = intermediateBuffer.getSampleCount();
+
+							//-- Make sure the modification vector is clear --//
+							modVector.clear();
+
+							//-- Copy all the contents of the audio Buffer into the modification vector --//
+							for (int i = 0; i < sampleCount; i++)
+							{
+								modVector.push_back(*(sampleArray + i));
+							}
 						}
+						
 					}
 				}
 			}

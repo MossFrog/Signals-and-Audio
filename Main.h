@@ -87,8 +87,18 @@ void lowerBitrate(vector<sf::Int16> sourceVect, vector<sf::Int16> & outputVector
 	for (int i = 0; i < sourceVect.size(); i++)
 	{
 		sourceVect[i] = sourceVect[i] >> 8;
+		if (sourceVect[i] > 256)
+		{
+			sourceVect[i] = 256;
+		}
+		if (sourceVect[i] < -256)
+		{
+			sourceVect[i] = -256;
+		}
 		sourceVect[i] = abs(sf::Int8(sourceVect[i]));
 		sourceVect[i] = sourceVect[i] << 9;
+
+		
 		
 		outputVector.push_back(sourceVect[i]);
 	}
