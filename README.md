@@ -22,5 +22,7 @@ Special thanks to:
 
 
 The University of Duke for their String Utilities classes.
+
+
 Michael Labbe for his Native File Dialog C Libraries.
 
