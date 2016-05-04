@@ -12,3 +12,13 @@ Controls
 - Hold 'R' to record audio.
 - Press 'P' to playback audio and update the waveform rendering.
 - Press 'C' to change the Waveform color.
+
+The resources used:
+- SFML 2.3.2.
+- Native File Dialog Library by Michael Labbe.
+- Strutils classes.
+
+Special thanks to..
+The University of Duke for their String Utilities classes.
+Michael Labbe for his Native File Dialog C Libraries.
+
