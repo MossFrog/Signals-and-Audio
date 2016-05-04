@@ -40,7 +40,6 @@ int main()
 	//-- Waveform Render Vector --//
 	vector<sf::VertexArray> lineVector;
 
-
 	//-- Boolean elements --//
 
 	bool playbackEnabled = false;
@@ -239,6 +238,12 @@ int main()
 
 					updateVerteces(modVector, lineVector);
 				}
+
+				//-- Color change command. --//
+				if (event.key.code == sf::Keyboard::C)
+				{
+					colorShift(lineVector);
+				}
 			}
 
 			if (event.type == sf::Event::KeyReleased)
@@ -301,7 +306,7 @@ int main()
 
 
 
-		//-- This code hides the console MainWindow, MS-WINDOWS specific --//
+		//-- This code hides the console window, MS-WINDOWS specific --//
 		/*HWND hWnd = GetConsoleWindow();
 		ShowWindow(hWnd, SW_HIDE);*/
 

@@ -12,6 +12,10 @@ sf::Font UIFont;
 
 using namespace std;
 
+//-- Color palette variables --//
+vector<sf::Color> colorPalette = { sf::Color::Cyan, sf::Color::White, sf::Color::Yellow, sf::Color::Green, sf::Color::Red };
+int colorIndex = 0;
+
 //-- Function for loading external data into program. --//
 void loadResources()
 {
@@ -24,6 +28,15 @@ void loadResources()
 	{
 		cout << "Failed to load the font 'Pixel Emulator.ttf'" << endl;
 	}
+
+
+	cout << endl << "-  Welcome to the S.A.M.T (Simple Audio Manipulation Tool)  -" << endl << endl;
+	cout << "> The program Assumes that the input has a Fsamp = 44100Hz." << endl;
+	cout << "> The program Supports opening WAV and OGG Vorbis files." << endl;
+	cout << "> The Waveform color can be changed by using the 'C' key." << endl;
+	cout << "> The Waveform is updated whenever playback is called." << endl;
+	cout << "> The 8-Bit output files are contained within a 16-Bit wrapper." << endl << endl;
+	cout << "// For any Bugs or Issues Check out The Github Repository" << endl << "@ Github.com/MossFrog //" << endl << endl;
 
 }
 
@@ -70,6 +83,10 @@ void updateVerteces(vector<sf::Int16> samplesVector, vector<sf::VertexArray> & l
 	{
 		tempLine[0].position = sf::Vector2f(xPos, yPos);
 		tempLine[1].position = sf::Vector2f(xPos, yPos - int(samplesVector[i]/150));
+
+		tempLine[0].color = sf::Color::Black;
+		tempLine[1].color = colorPalette[colorIndex];
+
 		lineVector.push_back(tempLine);
 		xPos++;
 		i = i + stepSize;
@@ -86,20 +103,32 @@ void lowerBitrate(vector<sf::Int16> sourceVect, vector<sf::Int16> & outputVector
 	//-- Use bit shifting operations to remove any "extra" data. --//
 	for (int i = 0; i < sourceVect.size(); i++)
 	{
+		//-- Limit the audio to the maximum range of 8-Bit audio. --//
 		sourceVect[i] = sourceVect[i] >> 8;
-		if (sourceVect[i] > 256)
+		if (sourceVect[i] > 128)
 		{
-			sourceVect[i] = 256;
+			sourceVect[i] = 128;
 		}
-		if (sourceVect[i] < -256)
+		if (sourceVect[i] < -128)
 		{
-			sourceVect[i] = -256;
+			sourceVect[i] = -128;
 		}
 		sourceVect[i] = abs(sf::Int8(sourceVect[i]));
 		sourceVect[i] = sourceVect[i] << 9;
-
-		
 		
 		outputVector.push_back(sourceVect[i]);
+	}
+}
+
+void colorShift(vector<sf::VertexArray> & lineVector)
+{
+	colorIndex++;
+	if (colorIndex >= colorPalette.size())
+	{
+		colorIndex = 0;
+	}
+	for (int i = 0; i < lineVector.size(); i++)
+	{
+		lineVector[i][1].color = colorPalette[colorIndex];
 	}
 }
