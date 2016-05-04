@@ -28,8 +28,10 @@ int main()
 
 	sf::SoundBuffer intermediateBuffer;
 
-	std::vector<sf::Int16> modVector;
-
+	vector<sf::Int16> modVector;
+	//-- The low bitrate Vector contains downsampled 16-Bit audio samples, the leftmost 8-Bits are merely padding zeroes. --//
+	vector<sf::Int16> lowBitrateVect;
+	
 	sf::Sound playbackSound;
 
 	vector<int> sampleRateArray = {44100, 22050, 11025, 5012};
@@ -119,12 +121,24 @@ int main()
 
 						intermediateBuffer.saveToFile("44K-Source.wav");
 
+						//-- Perform the Bitrate Changing operations --//
+						lowerBitrate(modVector, lowBitrateVect);
+						intermediateBuffer.loadFromSamples(&lowBitrateVect[0], lowBitrateVect.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("8-Bit-44K-Source.wav");
+
 						//-- Half the sample rate and repeat the saving process. --//
 						downSample(modVector);
 						sampleIndex++;
 						intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
 
 						intermediateBuffer.saveToFile("22K-Sample.wav");
+
+						//-- Perform the Bitrate Changing operations --//
+						lowerBitrate(modVector, lowBitrateVect);
+						intermediateBuffer.loadFromSamples(&lowBitrateVect[0], lowBitrateVect.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("8-Bit-22K-Sample.wav");
 
 						//-- Half the sample rate and repeat the saving process. --//
 						downSample(modVector);
@@ -133,6 +147,12 @@ int main()
 
 						intermediateBuffer.saveToFile("11K-Sample.wav");
 
+						//-- Perform the Bitrate Changing operations --//
+						lowerBitrate(modVector, lowBitrateVect);
+						intermediateBuffer.loadFromSamples(&lowBitrateVect[0], lowBitrateVect.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("8-Bit-11K-Sample.wav");
+
 						//-- Half the sample rate and repeat the saving process. --//
 						downSample(modVector);
 						sampleIndex++;
@@ -140,9 +160,30 @@ int main()
 
 						intermediateBuffer.saveToFile("5K-Sample.wav");
 
+						//-- Perform the Bitrate Changing operations --//
+						lowerBitrate(modVector, lowBitrateVect);
+						intermediateBuffer.loadFromSamples(&lowBitrateVect[0], lowBitrateVect.size(), 1, sampleRateArray[sampleIndex]);
+
+						intermediateBuffer.saveToFile("8-Bit-5K-Sample.wav");
+
+
 						//-- Re-load the Source audio back into the buffer. --//
 						intermediateBuffer.loadFromFile("44K-Source.wav");
 						sampleIndex = 0;
+
+						//-- Update the mod vector to contain the original intermediate buffer. --//
+
+						sampleArray = intermediateBuffer.getSamples();
+						sampleCount = intermediateBuffer.getSampleCount();
+
+						//-- Make sure the modification vector is clear --//
+						modVector.clear();
+
+						//-- Copy all the contents of the audio Buffer into the modification vector --//
+						for (int i = 0; i < sampleCount; i++)
+						{
+							modVector.push_back(*(sampleArray + i));
+						}
 					}
 
 					//-- Opening a file from an external source. --//

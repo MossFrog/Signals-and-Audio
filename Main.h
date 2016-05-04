@@ -75,3 +75,21 @@ void updateVerteces(vector<sf::Int16> samplesVector, vector<sf::VertexArray> & l
 		i = i + stepSize;
 	}
 }
+
+
+//-- Since SFML cannot output in 8-bit format, we emulate this by removing the sign bit and any data within the leftmost 8-Bits --//
+void lowerBitrate(vector<sf::Int16> sourceVect, vector<sf::Int16> & outputVector)
+{
+	//-- Make sure the output vector is clean --//
+	outputVector.clear();
+
+	//-- Use bit shifting operations to remove any "extra" data. --//
+	for (int i = 0; i < sourceVect.size(); i++)
+	{
+		sourceVect[i] = sourceVect[i] >> 8;
+		sourceVect[i] = abs(sf::Int8(sourceVect[i]));
+		sourceVect[i] = sourceVect[i] << 9;
+		
+		outputVector.push_back(sourceVect[i]);
+	}
+}
