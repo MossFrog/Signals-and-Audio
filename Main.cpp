@@ -45,19 +45,13 @@ int main()
 
 	//-- FFT Variables --//
 	//-- N is the size of the Real Sample Array. --//
-	int N = 10
-		;
-	fftw_complex *in, *out;
+	int N = 10;
+	//-- out is the Complex Number Output Array --//
+	fftw_complex *out;
+	//-- "p" is the standard plan for the Fourier Transformations --//
 	fftw_plan p;
 
-	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-	out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
-	p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
-
-	fftw_execute(p); /* repeat as needed */
-
-	fftw_destroy_plan(p);
-	fftw_free(in); fftw_free(out);
+	bool EffectEnabled = false;
 
 	//-- Text and Button Elements --//
 	sf::Text recordText;
@@ -238,12 +232,14 @@ int main()
 							{
 								modVector.push_back(*(sampleArray + i));
 							}
+
+							EffectEnabled = true;
 						}
 						
 					}
 
 					//-- Load and apply an audio effect --//
-					else if (EffectRect.getGlobalBounds().contains(mouse.x, mouse.y))
+					else if (EffectRect.getGlobalBounds().contains(mouse.x, mouse.y) && EffectEnabled == true)
 					{
 						nfdchar_t *outPath = NULL;
 						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
@@ -251,7 +247,35 @@ int main()
 						//-- Make sure the directory path given is valid, or else the program will crash searching for a NULL directory --//
 						if (outPath != NULL && outPath != "")
 						{
-							
+							vector<double> FFTVect;
+
+							intermediateBuffer.loadFromFile(outPath);
+
+							//-- Update the mod vector to contain the new intermediate buffer. --//
+
+							sampleArray = intermediateBuffer.getSamples();
+							sampleCount = intermediateBuffer.getSampleCount();
+
+							//-- Make sure the Fourier Transform vector is clear --//
+							FFTVect.clear();
+
+							//-- Update "N" --//
+							N = sampleCount;
+
+							//-- Copy all the contents of the audio Buffer into the modification vector --//
+							for (int i = 0; i < sampleCount; i++)
+							{
+								FFTVect.push_back(*(sampleArray + i));
+							}
+
+							//-- Allocate memory for the output --//
+							out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (N/2)+1);
+
+							p = fftw_plan_dft_r2c_1d(N, &(FFTVect[0]), out, FFTW_ESTIMATE);
+
+							fftw_execute(p);
+
+
 						}
 					}
 				}
@@ -346,7 +370,13 @@ int main()
 
 
 		if (EffectRect.getGlobalBounds().contains(mouse.x, mouse.y))
-		{ EffectRect.setFillColor(sf::Color::White); }
+		{
+			if (EffectEnabled)
+			{ EffectRect.setFillColor(sf::Color::White); }
+			else
+			{ EffectRect.setFillColor(sf::Color::Red); }
+			
+		}
 
 		else
 		{ EffectRect.setFillColor(sf::Color::Cyan); }
