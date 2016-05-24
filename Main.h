@@ -7,6 +7,19 @@
 #include <vector>
 #include <nfd.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+	// C-Headers
+	#include "fftw3.h"
+
+#ifdef __cplusplus
+}
+#endif
+
+
 //-- Commonly Used Variables. --//
 sf::Font UIFont;
 

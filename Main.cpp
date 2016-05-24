@@ -8,7 +8,7 @@ using namespace std;
 int main()
 {
 	//-- We create the render MainWindow and Set its initial properties. --//
-	sf::RenderWindow MainWindow(sf::VideoMode(1000, 400), "Audio Sampler", sf::Style::Close);
+	sf::RenderWindow MainWindow(sf::VideoMode(1000, 600), "Audio Sampler", sf::Style::Close);
 	MainWindow.setFramerateLimit(60);
 	MainWindow.setKeyRepeatEnabled(false);
 
@@ -41,8 +41,23 @@ int main()
 	vector<sf::VertexArray> lineVector;
 
 	//-- Boolean elements --//
-
 	bool playbackEnabled = false;
+
+	//-- FFT Variables --//
+	//-- N is the size of the Real Sample Array. --//
+	int N = 10
+		;
+	fftw_complex *in, *out;
+	fftw_plan p;
+
+	in = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+	out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * N);
+	p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+
+	fftw_execute(p); /* repeat as needed */
+
+	fftw_destroy_plan(p);
+	fftw_free(in); fftw_free(out);
 
 	//-- Text and Button Elements --//
 	sf::Text recordText;
@@ -84,13 +99,25 @@ int main()
 	openFileText.setFont(UIFont);
 	openFileText.setString("Open File");
 	openFileText.setColor(sf::Color::Black);
-	openFileText.setPosition(60, 350);
+	openFileText.setPosition(60, 450);
 	openFileText.setCharacterSize(15);
 
 	sf::RectangleShape openFileRect;
 	openFileRect.setFillColor(sf::Color::Cyan);
-	openFileRect.setPosition(50, 340);
+	openFileRect.setPosition(50, 440);
 	openFileRect.setSize(sf::Vector2f(115, 50));
+
+	sf::Text EffectText;
+	EffectText.setFont(UIFont);
+	EffectText.setString("Apply Effect");
+	EffectText.setColor(sf::Color::Black);
+	EffectText.setPosition(60, 510);
+	EffectText.setCharacterSize(15);
+
+	sf::RectangleShape EffectRect;
+	EffectRect.setFillColor(sf::Color::Cyan);
+	EffectRect.setPosition(50, 500);
+	EffectRect.setSize(sf::Vector2f(145, 50));
 
 	//-- Main game loop --//
 	while (MainWindow.isOpen())
@@ -214,6 +241,19 @@ int main()
 						}
 						
 					}
+
+					//-- Load and apply an audio effect --//
+					else if (EffectRect.getGlobalBounds().contains(mouse.x, mouse.y))
+					{
+						nfdchar_t *outPath = NULL;
+						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
+
+						//-- Make sure the directory path given is valid, or else the program will crash searching for a NULL directory --//
+						if (outPath != NULL && outPath != "")
+						{
+							
+						}
+					}
 				}
 			}
 
@@ -305,6 +345,13 @@ int main()
 		{ openFileRect.setFillColor(sf::Color::Cyan); }
 
 
+		if (EffectRect.getGlobalBounds().contains(mouse.x, mouse.y))
+		{ EffectRect.setFillColor(sf::Color::White); }
+
+		else
+		{ EffectRect.setFillColor(sf::Color::Cyan); }
+
+
 
 		//-- This code hides the console window, MS-WINDOWS specific --//
 		/*HWND hWnd = GetConsoleWindow();
@@ -323,6 +370,8 @@ int main()
 		MainWindow.draw(outputText);
 		MainWindow.draw(openFileRect);
 		MainWindow.draw(openFileText);
+		MainWindow.draw(EffectRect);
+		MainWindow.draw(EffectText);
 		for (int i = 0; i < lineVector.size(); i++)
 		{
 			MainWindow.draw(lineVector[i]);
