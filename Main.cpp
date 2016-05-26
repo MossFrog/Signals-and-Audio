@@ -44,12 +44,17 @@ int main()
 	bool playbackEnabled = false;
 
 	//-- FFT Variables --//
+
 	//-- N is the size of the Real Sample Array. --//
 	int N = 10;
 	//-- out is the Complex Number Output Array --//
-	fftw_complex *out;
+	fftw_complex * out;
+	fftw_complex * sourceOut;
 	//-- "p" is the standard plan for the Fourier Transformations --//
 	fftw_plan p;
+
+	sf::SoundBuffer fftBuffer;
+
 
 	bool EffectEnabled = false;
 
@@ -249,32 +254,80 @@ int main()
 						{
 							vector<double> FFTVect;
 
-							intermediateBuffer.loadFromFile(outPath);
+							fftBuffer.loadFromFile(outPath);
 
 							//-- Update the mod vector to contain the new intermediate buffer. --//
 
-							sampleArray = intermediateBuffer.getSamples();
-							sampleCount = intermediateBuffer.getSampleCount();
+							sampleArray = fftBuffer.getSamples();
+							sampleCount = fftBuffer.getSampleCount();
+
+							int sourceSampleCount = intermediateBuffer.getSampleCount();
 
 							//-- Make sure the Fourier Transform vector is clear --//
 							FFTVect.clear();
 
-							//-- Update "N" --//
-							N = sampleCount;
-
-							//-- Copy all the contents of the audio Buffer into the modification vector --//
+							//-- Copy all the contents of the audio Buffer into the FFT Vector --//
 							for (int i = 0; i < sampleCount; i++)
 							{
 								FFTVect.push_back(*(sampleArray + i));
 							}
+							
+							//-- Add padding Zeroes to equal the length of the source Audio --//
+							for (int i = 0; i < abs(sourceSampleCount - sampleCount); i++)
+							{
+								FFTVect.push_back(double(0));
+							}
+
+							//-- Update "N" --//
+							N = FFTVect.size();
 
 							//-- Allocate memory for the output --//
 							out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (N/2)+1);
+							sourceOut = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (N/2)+1);
 
+							//-- Define the plan and execute the FFT for both Signals --//
 							p = fftw_plan_dft_r2c_1d(N, &(FFTVect[0]), out, FFTW_ESTIMATE);
 
 							fftw_execute(p);
 
+							//-- Clear and update the contents of the FFTVect to the source Audio--//
+
+							//-- Copy all the contents of the audio Buffer into the FFT Vector --//
+							sampleArray = intermediateBuffer.getSamples();
+
+							for (int i = 0; i < sourceSampleCount; i++)
+							{
+								FFTVect.push_back(*(sampleArray + i));
+							}
+
+							//-- Create a second plan for the source Audio conversion --//
+							p = fftw_plan_dft_r2c_1d(N, &(FFTVect[0]), sourceOut, FFTW_ESTIMATE);
+
+							//-- Now that we have the arrays "out" and "sourceOut" we can apply convolution in the frequency domain --//
+
+
+							//-- Apply convolution between the source Signal and the Impulse response. --//
+
+
+
+
+							//-- ! Inversion Section ! --//
+
+							//-- Define and Execute the inverse Fourier transform --//
+							p = fftw_plan_dft_c2r_1d(N, out, &(FFTVect[0]), FFTW_ESTIMATE);
+
+							fftw_execute(p);
+
+
+							modVector.clear();
+
+							for (int i = 0; i < FFTVect.size(); i++)
+							{
+								modVector.push_back(sf::Int16(FFTVect[i]/N));
+							}
+
+							intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 2, 44100);
+							
 
 						}
 					}
@@ -338,6 +391,7 @@ int main()
 
 					//-- Re-enable playback --//
 					playbackEnabled = true;
+					EffectEnabled = true;
 
 					//-- Output Recording Statistics to the console. --//
 					cout << endl;
@@ -346,6 +400,8 @@ int main()
 					cout << "Sample Count: " << mainRecorder.getBuffer().getSampleCount() << endl;
 					cout << "Channel Count: " << mainRecorder.getBuffer().getChannelCount() << endl;
 					cout << "Samples Memory Index: " << mainRecorder.getBuffer().getSamples() << endl;
+
+					
 
 				}
 			}
