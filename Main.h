@@ -3,22 +3,11 @@
 #include <SFML/OpenGL.hpp>
 #include <iostream>
 
+#include <cmath>
 #include <cstdlib>
 #include <vector>
 #include <nfd.h>
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-	// C-Headers
-	#include "fftw3.h"
-
-#ifdef __cplusplus
-}
-#endif
-
+#include "fft.h"
 
 //-- Commonly Used Variables. --//
 sf::Font UIFont;
@@ -144,4 +133,15 @@ void colorShift(vector<sf::VertexArray> & lineVector)
 	{
 		lineVector[i][1].color = colorPalette[colorIndex];
 	}
+}
+
+void forceMono(vector<sf::Int16> & stereoVect)
+{
+	vector<sf::Int16> tempVect;
+	for (int i = 0; i < stereoVect.size(); i+=2)
+	{
+		tempVect.push_back((stereoVect[i] + stereoVect[i + 1])/2);
+	}
+
+	stereoVect = tempVect;
 }

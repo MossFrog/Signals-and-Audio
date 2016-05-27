@@ -31,10 +31,10 @@ int main()
 	vector<sf::Int16> modVector;
 	//-- The low bitrate Vector contains downsampled 16-Bit audio samples, the leftmost 8-Bits are merely padding zeroes. --//
 	vector<sf::Int16> lowBitrateVect;
-	
+
 	sf::Sound playbackSound;
 
-	vector<int> sampleRateArray = {44100, 22050, 11025, 5012};
+	vector<int> sampleRateArray = { 44100, 22050, 11025, 5012 };
 	int sampleIndex = 0;
 
 	//-- Waveform Render Vector --//
@@ -45,13 +45,25 @@ int main()
 
 	//-- FFT Variables --//
 
-	//-- N is the size of the Real Sample Array. --//
-	int N = 10;
-	//-- out is the Complex Number Output Array --//
-	fftw_complex * out;
-	fftw_complex * sourceOut;
-	//-- "p" is the standard plan for the Fourier Transformations --//
-	fftw_plan p;
+	/* IMPULSE RESPONSE SECTION */
+	sf::SoundBuffer IRRawBuffer;
+	vector<sf::Int16> IRBuffer;
+	int IRSampleCount;
+	const sf::Int16 * IRMemLoc;
+	vector<complex> IRComplex;
+
+	/* MAIN SIGNAL SECTION */
+	vector<sf::Int16> SignalBuffer;
+	vector<complex> SignalComplex;
+
+	/* OUTPUT SIGNAL SECTION */
+	vector<complex> outputComplex;
+	vector<sf::Int16> outputConverted;
+
+
+
+
+	//-------------------//
 
 	sf::SoundBuffer fftBuffer;
 
@@ -139,7 +151,7 @@ int main()
 					if (outputRect.getGlobalBounds().contains(mouse.x, mouse.y) && playbackEnabled == true)
 					{
 						//-- Create downsamples here. --//
-						cout << endl <<"- Creating and saving downsamples to program directory. -" << endl;
+						cout << endl << "- Creating and saving downsamples to program directory. -" << endl;
 
 						//-- Convert the audio to mono for simplicity --//
 						intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 1, sampleRateArray[sampleIndex]);
@@ -214,7 +226,7 @@ int main()
 					//-- Opening a file from an external source. --//
 					else if (openFileRect.getGlobalBounds().contains(mouse.x, mouse.y))
 					{
-						
+
 						nfdchar_t *outPath = NULL;
 						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
 
@@ -240,96 +252,99 @@ int main()
 
 							EffectEnabled = true;
 						}
-						
+
 					}
 
 					//-- Load and apply an audio effect --//
 					else if (EffectRect.getGlobalBounds().contains(mouse.x, mouse.y) && EffectEnabled == true)
 					{
+
 						nfdchar_t *outPath = NULL;
 						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
 
 						//-- Make sure the directory path given is valid, or else the program will crash searching for a NULL directory --//
 						if (outPath != NULL && outPath != "")
 						{
-							vector<double> FFTVect;
+							IRBuffer.clear();
+							IRRawBuffer.loadFromFile(outPath);
 
-							fftBuffer.loadFromFile(outPath);
+							IRMemLoc = IRRawBuffer.getSamples();
+							IRSampleCount = IRRawBuffer.getSampleCount();
 
-							//-- Update the mod vector to contain the new intermediate buffer. --//
-
-							sampleArray = fftBuffer.getSamples();
-							sampleCount = fftBuffer.getSampleCount();
-
-							int sourceSampleCount = intermediateBuffer.getSampleCount();
-
-							//-- Make sure the Fourier Transform vector is clear --//
-							FFTVect.clear();
-
-							//-- Copy all the contents of the audio Buffer into the FFT Vector --//
-							for (int i = 0; i < sampleCount; i++)
+							for (int i = 0; i < IRSampleCount; i++)
 							{
-								FFTVect.push_back(*(sampleArray + i));
-							}
-							
-							//-- Add padding Zeroes to equal the length of the source Audio --//
-							for (int i = 0; i < abs(sourceSampleCount - sampleCount); i++)
-							{
-								FFTVect.push_back(double(0));
+								IRBuffer.push_back(*(IRMemLoc + i));
 							}
 
-							//-- Update "N" --//
-							N = FFTVect.size();
+							cout << double(IRBuffer.size()/44100) << endl;
 
-							//-- Allocate memory for the output --//
-							out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (N/2)+1);
-							sourceOut = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * (N/2)+1);
+							//-- Convert the Impulse Response Signal to Mono --//
+							forceMono(IRBuffer);
 
-							//-- Define the plan and execute the FFT for both Signals --//
-							p = fftw_plan_dft_r2c_1d(N, &(FFTVect[0]), out, FFTW_ESTIMATE);
+							cout << double(IRBuffer.size()/44100) << endl;
 
-							fftw_execute(p);
+							//-- Convert the original Signal (Contained in ModVector) to Mono --//
 
-							//-- Clear and update the contents of the FFTVect to the source Audio--//
+							SignalBuffer = modVector;
 
-							//-- Copy all the contents of the audio Buffer into the FFT Vector --//
-							sampleArray = intermediateBuffer.getSamples();
+							forceMono(SignalBuffer);
 
-							for (int i = 0; i < sourceSampleCount; i++)
+							//-- Add the padding zeroes to the Impulse Response --//
+
+							int x = SignalBuffer.size() - IRBuffer.size();
+
+							if (x > 0)
 							{
-								FFTVect.push_back(*(sampleArray + i));
+								for (int i = 0; i < x; i++)
+								{
+									IRBuffer.push_back(0);
+								}
+
+								cout << "- Added the padding zeroes to the Impulse response." << endl;
 							}
 
-							//-- Create a second plan for the source Audio conversion --//
-							p = fftw_plan_dft_r2c_1d(N, &(FFTVect[0]), sourceOut, FFTW_ESTIMATE);
-
-							//-- Now that we have the arrays "out" and "sourceOut" we can apply convolution in the frequency domain --//
 
 
-							//-- Apply convolution between the source Signal and the Impulse response. --//
+							//-- Fill both of the "complex" variabe type Vectors --//
+							SignalComplex.clear();
+							IRComplex.clear();
 
-
-
-
-							//-- ! Inversion Section ! --//
-
-							//-- Define and Execute the inverse Fourier transform --//
-							p = fftw_plan_dft_c2r_1d(N, out, &(FFTVect[0]), FFTW_ESTIMATE);
-
-							fftw_execute(p);
-
-
-							modVector.clear();
-
-							for (int i = 0; i < FFTVect.size(); i++)
+							for (int i = 0; i < IRBuffer.size(); i++)
 							{
-								modVector.push_back(sf::Int16(FFTVect[i]/N));
+								//-- We also normalize the values in the process using Cmath --//
+								complex IRSample(IRBuffer[i] / (pow(2.0,16.0)));
+								complex SignalSample(SignalBuffer[i] / (pow(2.0, 16.0)));
+
+								IRComplex.push_back(IRSample);
+								SignalComplex.push_back(SignalSample);
 							}
 
-							intermediateBuffer.loadFromSamples(&modVector[0], modVector.size(), 2, 44100);
+							//-- Apply the Inplace Forward FFT on both signals. --//
+
+							CFFT newCFFT;
+							newCFFT.Forward(&(IRComplex[0]), IRComplex.size());
+							newCFFT.Forward(&(SignalComplex[0]), SignalComplex.size());
+
+							//-- Convolve both of the transformed Signals within the frequency domain --//
+
+							outputComplex.clear();
+
+							for (int i = 0; i < IRComplex.size(); i++)
+							{
+								complex TempComplex;
+								TempComplex.re = (IRComplex[i].re()*SignalComplex[i].re() - IRComplex[i].im()*SignalComplex[i].im());
+								TempComplex.im = (IRComplex[i].re()*SignalComplex[i].im() + IRComplex[i].im()*SignalComplex[i].re());
+
+								outputComplex.push_back(TempComplex);
+							}
+
+							//-- Apply the inverse Fourier Transform to the Input --//
+
+
 							
 
 						}
+
 					}
 				}
 			}
@@ -401,41 +416,55 @@ int main()
 					cout << "Channel Count: " << mainRecorder.getBuffer().getChannelCount() << endl;
 					cout << "Samples Memory Index: " << mainRecorder.getBuffer().getSamples() << endl;
 
-					
+
 
 				}
 			}
 		}
 
-		
+
 
 
 		//-- Hovering over UI elements changes their color. --//
 		if (outputRect.getGlobalBounds().contains(mouse.x, mouse.y))
-		{ outputRect.setFillColor(sf::Color::White); }
+		{
+			outputRect.setFillColor(sf::Color::White);
+		}
 
 		else
-		{ outputRect.setFillColor(sf::Color::Cyan); }
+		{
+			outputRect.setFillColor(sf::Color::Cyan);
+		}
 
 
 		if (openFileRect.getGlobalBounds().contains(mouse.x, mouse.y))
-		{ openFileRect.setFillColor(sf::Color::White); }
+		{
+			openFileRect.setFillColor(sf::Color::White);
+		}
 
 		else
-		{ openFileRect.setFillColor(sf::Color::Cyan); }
+		{
+			openFileRect.setFillColor(sf::Color::Cyan);
+		}
 
 
 		if (EffectRect.getGlobalBounds().contains(mouse.x, mouse.y))
 		{
 			if (EffectEnabled)
-			{ EffectRect.setFillColor(sf::Color::White); }
+			{
+				EffectRect.setFillColor(sf::Color::White);
+			}
 			else
-			{ EffectRect.setFillColor(sf::Color::Red); }
-			
+			{
+				EffectRect.setFillColor(sf::Color::Red);
+			}
+
 		}
 
 		else
-		{ EffectRect.setFillColor(sf::Color::Cyan); }
+		{
+			EffectRect.setFillColor(sf::Color::Cyan);
+		}
 
 
 
