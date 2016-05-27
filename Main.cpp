@@ -130,6 +130,10 @@ int main()
 	EffectRect.setPosition(50, 500);
 	EffectRect.setSize(sf::Vector2f(145, 50));
 
+	sf::RectangleShape FourierRect;
+	FourierRect.setFillColor(sf::Color::Green);
+
+
 	//-- Main game loop --//
 	while (MainWindow.isOpen())
 	{
@@ -289,20 +293,30 @@ int main()
 
 							forceMono(SignalBuffer);
 
-							//-- Add the padding zeroes to the Impulse Response --//
+							//-- Add the padding zeroes to both Audio Signals --//
 
-							int x = SignalBuffer.size() - IRBuffer.size();
+							int requiredSize = SignalBuffer.size() + IRBuffer.size() - 1;
+							int exponent = 0;
 
-							if (x > 0)
+							while (requiredSize > pow(2.0, exponent))
 							{
-								for (int i = 0; i < x; i++)
-								{
-									IRBuffer.push_back(0);
-								}
-
-								cout << "- Added the padding zeroes to the Impulse response." << endl;
+								exponent += 1;
 							}
 
+							requiredSize = pow(2.0, exponent);
+
+							int SignalBufferZeroes = requiredSize - SignalBuffer.size();
+							int IRBufferZeroes = requiredSize - IRBuffer.size();
+
+							for (int i = 0; i < SignalBufferZeroes; i++)
+							{
+								SignalBuffer.push_back(0);
+							}
+
+							for (int i = 0; i < IRBufferZeroes; i++)
+							{
+								IRBuffer.push_back(0);
+							}
 
 
 							//-- Fill both of the "complex" variabe type Vectors --//
@@ -312,18 +326,33 @@ int main()
 							for (int i = 0; i < IRBuffer.size(); i++)
 							{
 								//-- We also normalize the values in the process using Cmath --//
-								complex IRSample(IRBuffer[i] / (pow(2.0,16.0)));
-								complex SignalSample(SignalBuffer[i] / (pow(2.0, 16.0)));
+								complex IRSample(IRBuffer[i] / pow(2.0, 16.0));
+								complex SignalSample(SignalBuffer[i] / pow(2.0,16.0));
 
 								IRComplex.push_back(IRSample);
 								SignalComplex.push_back(SignalSample);
 							}
 
+							complex * FFTSignalComplex = new complex[SignalComplex.size()];
+							complex * FFTIRComplex = new complex[IRComplex.size()];
+
+							for (int i = 0; i < IRComplex.size(); i++)
+							{
+								*(FFTIRComplex + i) = IRComplex[i];
+								*(FFTSignalComplex + i) = SignalComplex[i];
+							}
+
 							//-- Apply the Inplace Forward FFT on both signals. --//
 
 							CFFT newCFFT;
-							newCFFT.Forward(&(IRComplex[0]), IRComplex.size());
-							newCFFT.Forward(&(SignalComplex[0]), SignalComplex.size());
+							newCFFT.Forward(FFTIRComplex, IRComplex.size());
+							newCFFT.Forward(FFTSignalComplex, SignalComplex.size());
+
+							for (int i = 0; i < IRComplex.size(); i++)
+							{
+								IRComplex[i] = *(FFTIRComplex + i);
+								SignalComplex[i] = *(FFTSignalComplex + i);
+							}
 
 							//-- Convolve both of the transformed Signals within the frequency domain --//
 
@@ -331,20 +360,33 @@ int main()
 
 							for (int i = 0; i < IRComplex.size(); i++)
 							{
-								complex TempComplex;
-								TempComplex.re = (IRComplex[i].re()*SignalComplex[i].re() - IRComplex[i].im()*SignalComplex[i].im());
-								TempComplex.im = (IRComplex[i].re()*SignalComplex[i].im() + IRComplex[i].im()*SignalComplex[i].re());
+								double Real = IRComplex[i].re()*SignalComplex[i].re() - IRComplex[i].im()*SignalComplex[i].im();
+								double Imaginary = IRComplex[i].re()*SignalComplex[i].im() + IRComplex[i].im()*SignalComplex[i].re();
+
+								complex TempComplex(Real, Imaginary);
 
 								outputComplex.push_back(TempComplex);
 							}
 
+
 							//-- Apply the inverse Fourier Transform to the Input --//
 
-
+							newCFFT.Inverse(&(outputComplex[0]), outputComplex.size(), true);
 							
+							//-- Re-Fill the converted vector with De-Normalized values --//
 
+							outputConverted.clear();
+							modVector.clear();
+
+							for (int i = 0; i < outputComplex.size(); i++)
+							{
+								modVector.push_back(sf::Int16(outputComplex[i].re() * pow(2.0, 16.0)));
+							}
+
+							//-- Play the convoluted signal --//
+							intermediateBuffer.loadFromSamples(&(modVector[0]), modVector.size(), 1, 22050);
+							cout << "- Applied a convolution Operation -" << endl;
 						}
-
 					}
 				}
 			}
