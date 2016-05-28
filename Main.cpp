@@ -3,7 +3,7 @@
 
 using namespace std;
 
-//-- This program is a simple demonstration of primitive shapes using the SFML library --//
+//-- This program is a simple demonstration of audio signal Manipulation using the SFML library as a GUI --//
 //-- Software Created by MossFrog --//
 int main()
 {
@@ -59,8 +59,13 @@ int main()
 	/* OUTPUT SIGNAL SECTION */
 	vector<complex> outputComplex;
 	vector<sf::Int16> outputConverted;
+	
+	//-- Domain change variable --//
+	string domain = "Frequency";
 
+	//-- DSP Filter section --//
 
+	
 
 
 	//-------------------//
@@ -132,7 +137,32 @@ int main()
 
 	sf::RectangleShape FourierRect;
 	FourierRect.setFillColor(sf::Color::Green);
+	FourierRect.setPosition(700, 500);
+	FourierRect.setSize(sf::Vector2f(25, 25));
+	FourierRect.setOutlineThickness(5);
+	FourierRect.setOutlineColor(sf::Color::Cyan);
 
+	sf::Text FourierText;
+	FourierText.setFont(UIFont);
+	FourierText.setString("Frequency Domain");
+	FourierText.setColor(sf::Color::White);
+	FourierText.setPosition(750, 500);
+	FourierText.setCharacterSize(15);
+
+
+	sf::RectangleShape whistleRect;
+	whistleRect.setFillColor(sf::Color::Cyan);
+	whistleRect.setPosition(700, 440);
+	whistleRect.setSize(sf::Vector2f(25, 25));
+	whistleRect.setOutlineThickness(5);
+	whistleRect.setOutlineColor(sf::Color::Cyan);
+
+	sf::Text whistleText;
+	whistleText.setFont(UIFont);
+	whistleText.setString("Whistle Filter");
+	whistleText.setColor(sf::Color::White);
+	whistleText.setPosition(750, 440);
+	whistleText.setCharacterSize(15);
 
 	//-- Main game loop --//
 	while (MainWindow.isOpen())
@@ -267,7 +297,7 @@ int main()
 						nfdresult_t result = NFD_OpenDialog("wav,ogg", NULL, &outPath);
 
 						//-- Make sure the directory path given is valid, or else the program will crash searching for a NULL directory --//
-						if (outPath != NULL && outPath != "")
+						if (outPath != NULL && outPath != "" && domain == "Frequency")
 						{
 							IRBuffer.clear();
 							IRRawBuffer.loadFromFile(outPath);
@@ -280,12 +310,8 @@ int main()
 								IRBuffer.push_back(*(IRMemLoc + i));
 							}
 
-							cout << double(IRBuffer.size()/44100) << endl;
-
 							//-- Convert the Impulse Response Signal to Mono --//
 							forceMono(IRBuffer);
-
-							cout << double(IRBuffer.size()/44100) << endl;
 
 							//-- Convert the original Signal (Contained in ModVector) to Mono --//
 
@@ -385,8 +411,177 @@ int main()
 
 							//-- Play the convoluted signal --//
 							intermediateBuffer.loadFromSamples(&(modVector[0]), modVector.size(), 1, 22050);
-							cout << "- Applied a convolution Operation -" << endl;
+							cout << "- Applied the convolution Operation -" << endl;
 						}
+
+						//-- Convolution is performed within the Time Domain without utilizing the Fourier Transform --//
+						else if (outPath != NULL && outPath != "" && domain == "Time")
+						{
+							IRBuffer.clear();
+							IRRawBuffer.loadFromFile(outPath);
+
+							IRMemLoc = IRRawBuffer.getSamples();
+							IRSampleCount = IRRawBuffer.getSampleCount();
+
+							for (int i = 0; i < IRSampleCount; i++)
+							{
+								IRBuffer.push_back(*(IRMemLoc + i));
+							}
+
+							//-- Convert the Impulse Response Signal to Mono --//
+							forceMono(IRBuffer);
+
+							//-- Convert the original Signal (Contained in ModVector) to Mono --//
+
+							SignalBuffer = modVector;
+
+							forceMono(SignalBuffer);
+
+							//-- Normalize all the values in the Vectors --//
+							vector<double> normalizedSource;
+							vector<double> normalizedIR;
+							normalizedSource.clear();
+							normalizedIR.clear();
+
+
+							for (int i = 0; i < SignalBuffer.size(); i++)
+							{
+								normalizedSource.push_back(SignalBuffer[i] / pow(2.0, 16.0));
+							}
+
+							for (int i = 0; i < IRBuffer.size(); i++)
+							{
+								normalizedIR.push_back(IRBuffer[i] / pow(2.0, 16.0));
+							}
+
+							//-- Nested for Loops for Vector element by element Multiplication --//
+							vector<double> resultVector;
+
+							for (int i = 0; i < normalizedSource.size(); i++)
+							{
+								resultVector.push_back(0);
+								for (int j = 0; j < normalizedIR.size() + normalizedSource.size() - 1; j++)
+								{
+									if ((i - j >= 0) && (i + j < normalizedSource.size()))
+									{
+										resultVector[i] += normalizedSource[i - j] * normalizedIR[j];
+									}
+
+									else
+									{
+										//-- Do nothing --//
+									}
+									
+								}
+							}
+
+							//-- Scale the resultVector values back to normal and write them to the modVector --//
+							for (int i = 0; i < resultVector.size(); i++)
+							{
+								//cout << resultVector[i] * pow(2.0, 16.0) * pow(2.0, 16.0)<< endl;
+							}
+							modVector.clear();
+							cout << resultVector.size() << endl;
+							for (int i = 0; i < resultVector.size(); i++)
+							{
+								modVector.push_back(resultVector[i] * pow(2.0, 16.0));
+							}
+
+							intermediateBuffer.loadFromSamples(&(modVector[0]), modVector.size(), 1, 22050);
+						}
+					}
+
+					if (FourierRect.getGlobalBounds().contains(mouse.x, mouse.y))
+					{
+						if (domain == "Time") 
+						{ 
+							domain = "Frequency";
+							FourierRect.setFillColor(sf::Color::Green);
+							FourierText.setString("Frequency Domain");
+						}
+						else 
+						{ 
+							domain = "Time";
+							FourierRect.setFillColor(sf::Color::Red);
+							FourierText.setString("Time Domain");
+						}
+					}
+
+					else if (whistleRect.getGlobalBounds().contains(mouse.x, mouse.y) && EffectEnabled == true)
+					{
+						//-- Create a buffer for the audio to be filtered --//
+						vector<sf::Int16> whistleBuffer;
+
+						//-- Convert the original Signal (Contained in ModVector) to Mono --//
+
+						whistleBuffer = modVector;
+
+						forceMono(whistleBuffer);
+
+						//-- Add the padding zeroes to the Audio Signal --//
+
+						int requiredSize = whistleBuffer.size();
+						int exponent = 0;
+
+						while (requiredSize > pow(2.0, exponent))
+						{
+							exponent += 1;
+						}
+
+						requiredSize = pow(2.0, exponent);
+
+						while (whistleBuffer.size() != requiredSize)
+						{
+							whistleBuffer.push_back(0);
+						}
+
+						
+						complex * FFTComplexPtr = new complex[whistleBuffer.size()];
+
+						for (int i = 0; i < whistleBuffer.size(); i++)
+						{
+							*(FFTComplexPtr + i) = complex(double(whistleBuffer[i]) / pow(2.0,16.0));
+						}
+
+
+						CFFT newFFT;
+						newFFT.CustomForward(FFTComplexPtr, whistleBuffer.size());
+
+						int stepSize = whistleBuffer.size() / 22050;
+
+						float RC = 1.0 / (5000 * 2 * 3.14);
+						float dt = 1.0 / 22050;
+						float alpha = RC / (RC + dt);
+
+						//-- Apply a High-Pass Filter to filter out the whistle in the frequency domain, greatly reduces speech also --//
+
+						for (int i = 1; i < whistleBuffer.size(); i++)
+						{
+							if (i < whistleBuffer.size() / 15)
+							{
+								*(FFTComplexPtr + i) = complex(0);
+							}
+
+							else if (i > whistleBuffer.size() * 14 / 15)
+							{
+								*(FFTComplexPtr + i) = complex(0);
+							}
+						}
+
+						newFFT.Inverse(FFTComplexPtr, whistleBuffer.size(), true);
+
+						modVector.clear();
+
+						vector<complex> outputComplex;
+						for (int i = 0; i < whistleBuffer.size(); i++)
+						{
+							outputComplex.push_back(*(FFTComplexPtr + i));
+							modVector.push_back(outputComplex[i].re() * pow(2.0, 16.0));
+						}
+
+						intermediateBuffer.loadFromSamples(&(modVector[0]), modVector.size(), 1, 22050);
+
+
 					}
 				}
 			}
@@ -509,6 +704,18 @@ int main()
 		}
 
 
+		if (whistleRect.getGlobalBounds().contains(mouse.x, mouse.y))
+		{
+			whistleRect.setFillColor(sf::Color::White);
+		}
+
+		else
+		{
+			whistleRect.setFillColor(sf::Color::Cyan);
+		}
+
+
+
 
 		//-- This code hides the console window, MS-WINDOWS specific --//
 		/*HWND hWnd = GetConsoleWindow();
@@ -529,6 +736,11 @@ int main()
 		MainWindow.draw(openFileText);
 		MainWindow.draw(EffectRect);
 		MainWindow.draw(EffectText);
+		MainWindow.draw(FourierRect);
+		MainWindow.draw(FourierText);
+		MainWindow.draw(whistleRect);
+		MainWindow.draw(whistleText);
+
 		for (int i = 0; i < lineVector.size(); i++)
 		{
 			MainWindow.draw(lineVector[i]);
